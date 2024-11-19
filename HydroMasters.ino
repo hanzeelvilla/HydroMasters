@@ -86,6 +86,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   airPumpState = doc["airPump"];
   waterPumpState = doc["waterPump"];
+  Serial.println(airPumpState);
+  Serial.println(waterPumpState);
 }
 
 void setup() {
@@ -97,6 +99,7 @@ void setup() {
 
   // PUMPS
   airPump.init();
+  waterPump.init();
 
   // SENSOR
   waterTemp.begin();
@@ -106,15 +109,19 @@ void loop() {
   delay(10);
   reconnect();
 
-  if (airPumpState)
+  if (airPumpState) {
     airPump.on();
-  else
+  }
+  else {
     airPump.off();
+  }
 
-  if (waterPumpState)
+  if (waterPumpState) {
     waterPump.on();
-  else
+  }
+  else {
    waterPump.off();
+  }
   
   waterTemp.requestTemperatures();
   temp = waterTemp.getTempCByIndex(0);

@@ -5,6 +5,13 @@ PubSubClient client(espClient);
 
 long currenTime, lasTime;
 
+// JSON to send/receive
+StaticJsonDocument<200> doc;
+
+/*------------------------------ PUMPS ------------------------------*/
+Relay airPump(25);
+bool airPumpState = false;
+
 void setupWifi() {
   delay(1000);
   Serial.print("Connecting to: ");
@@ -59,6 +66,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
     //Serial.print((char)payload[i]);
   }
   Serial.println(msgTmp);
+
+  DeserializationError error = deserializeJson(doc, msgTmp);
+
+  if (error) {
+    Serial.print(F("Error parsing JSON: "));
+    Serial.println(error.f_str());
+    return;
+  }
+
+  airPumpState = doc["airPump"];
 }
 
 void setup() {
@@ -67,6 +84,9 @@ void setup() {
   setupWifi();
   client.setServer("test.mosquitto.org", 1883);
   client.setCallback(callback);
+
+  // PUMPS
+  airPump.init();
 }
 
 void loop() {
@@ -80,4 +100,9 @@ void loop() {
     client.publish(TX_TOPIC, "Hello Hydro Master");
     Serial.println("Publishing message...");
   }
+
+  if (airPumpState)
+    airPump.on();
+  else
+    airPump.off();
 }

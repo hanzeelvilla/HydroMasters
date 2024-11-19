@@ -5,13 +5,21 @@ PubSubClient client(espClient);
 
 long currenTime, lasTime;
 
-// JSON to send/receive
-StaticJsonDocument<200> doc;
-
 /*------------------------------ PUMPS ------------------------------*/
 Relay airPump(25);
 bool airPumpState = false;
 
+Relay waterPump(33);
+bool waterPumpState = false;
+
+/*------------------------------ SENSORS ------------------------------*/
+// temp
+#define sensorTemp 26
+OneWire oneWire(sensorTemp);
+DallasTemperature waterTemp(&oneWire);
+float temp = 0;
+
+/*------------------------------ FUNCTIONS ------------------------------*/
 void setupWifi() {
   delay(1000);
   Serial.print("Connecting to: ");
@@ -67,6 +75,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println(msgTmp);
 
+  StaticJsonDocument<200> doc;
   DeserializationError error = deserializeJson(doc, msgTmp);
 
   if (error) {
@@ -76,6 +85,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 
   airPumpState = doc["airPump"];
+  waterPumpState = doc["waterPump"];
 }
 
 void setup() {
@@ -87,22 +97,48 @@ void setup() {
 
   // PUMPS
   airPump.init();
+
+  // SENSOR
+  waterTemp.begin();
 }
 
 void loop() {
   delay(10);
   reconnect();
 
-  currenTime = millis();
-  if (currenTime - lasTime > 5000) {
-    lasTime = currenTime;
-
-    client.publish(TX_TOPIC, "Hello Hydro Master");
-    Serial.println("Publishing message...");
-  }
-
   if (airPumpState)
     airPump.on();
   else
     airPump.off();
+
+  if (waterPumpState)
+    waterPump.on();
+  else
+   waterPump.off();
+  
+  waterTemp.requestTemperatures();
+  temp = waterTemp.getTempCByIndex(0);
+  /*
+  Serial.print(waterTemp.getTempCByIndex(0));
+  Serial.println(" C°");
+  */
+
+  currenTime = millis();
+  if (currenTime - lasTime > 5000) {
+    lasTime = currenTime;
+
+    StaticJsonDocument<200> doc;
+    doc["temp"] = temp;
+
+    char buffer[200];
+    serializeJson(doc, buffer);
+
+
+    if (client.publish(TX_TOPIC, buffer)) {
+      Serial.println("Publishing message...");
+      Serial.println(buffer);
+    }
+    else 
+      Serial.println("Failed to publish message.");
+  }
 }

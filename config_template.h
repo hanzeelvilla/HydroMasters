@@ -7,6 +7,9 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include "Relay.h"
 
 #define SSID "SSID"
 #define PSWD "PSWD"

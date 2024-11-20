@@ -22,6 +22,12 @@ float temp = 0;
 // LLS
 #define LLS 35
 
+// LCD
+LiquidCrystal_I2C lcd (0x27, 16, 2);
+
+// RTC
+DS1307_RTC rtc;
+
 /*------------------------------ FUNCTIONS ------------------------------*/
 void setupWifi() {
   delay(1000);
@@ -105,6 +111,9 @@ void setup() {
   // SENSOR
   waterTemp.begin();
   pinMode(LLS, INPUT);
+  rtc.init();
+  lcd.init();
+  lcd.backlight();
 }
 
 void loop() {
@@ -135,6 +144,16 @@ void loop() {
   int val_LLS = digitalRead(LLS);
   Serial.println(val_LLS);
 
+  lcd.clear();
+  String textDate = rtc.formated_date();
+  String textTime = rtc.formated_time();
+
+  lcd.setCursor(0, 0);
+  lcd.print(textDate);
+
+  lcd.setCursor(0, 1);
+  lcd.print(textTime);
+
   if (val_LLS) {
     waterPumpState = false;
   }
@@ -147,6 +166,8 @@ void loop() {
     doc["temp"] = temp;
     doc["airPump"] = airPumpState;
     doc["waterPump"] = waterPumpState;
+    doc["date"] = textDate;
+    doc["time"] = textTime;
 
     char buffer[200];
     serializeJson(doc, buffer);

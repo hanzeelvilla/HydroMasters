@@ -9,7 +9,7 @@ long currenTime, lasTime;
 Relay airPump(25);
 bool airPumpState = false;
 
-Relay waterPump(33);
+Relay waterPump(32);
 bool waterPumpState = false;
 
 /*------------------------------ SENSORS ------------------------------*/
@@ -18,6 +18,9 @@ bool waterPumpState = false;
 OneWire oneWire(sensorTemp);
 DallasTemperature waterTemp(&oneWire);
 float temp = 0;
+
+// LLS
+#define LLS 35
 
 /*------------------------------ FUNCTIONS ------------------------------*/
 void setupWifi() {
@@ -86,8 +89,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   airPumpState = doc["airPump"];
   waterPumpState = doc["waterPump"];
-  Serial.println(airPumpState);
-  Serial.println(waterPumpState);
 }
 
 void setup() {
@@ -103,6 +104,7 @@ void setup() {
 
   // SENSOR
   waterTemp.begin();
+  pinMode(LLS, INPUT);
 }
 
 void loop() {
@@ -130,12 +132,21 @@ void loop() {
   Serial.println(" C°");
   */
 
+  int val_LLS = digitalRead(LLS);
+  Serial.println(val_LLS);
+
+  if (val_LLS) {
+    waterPumpState = false;
+  }
+
   currenTime = millis();
   if (currenTime - lasTime > 5000) {
     lasTime = currenTime;
 
     StaticJsonDocument<200> doc;
     doc["temp"] = temp;
+    doc["airPump"] = airPumpState;
+    doc["waterPump"] = waterPumpState;
 
     char buffer[200];
     serializeJson(doc, buffer);

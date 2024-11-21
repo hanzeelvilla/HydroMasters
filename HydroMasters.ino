@@ -6,21 +6,21 @@ PubSubClient client(espClient);
 long currenTime, lasTime;
 
 /*------------------------------ PUMPS ------------------------------*/
-Relay airPump(25);
+Relay airPump(32);
 bool airPumpState = false;
 
-Relay waterPump(32);
+Relay waterPump(35);
 bool waterPumpState = false;
 
 /*------------------------------ SENSORS ------------------------------*/
 // temp
-#define sensorTemp 26
+#define sensorTemp 25
 OneWire oneWire(sensorTemp);
 DallasTemperature waterTemp(&oneWire);
 float temp = 0;
 
 // LLS
-#define LLS 35
+#define LLS 33
 
 // LCD
 LiquidCrystal_I2C lcd (0x27, 16, 2);
@@ -154,10 +154,11 @@ void loop() {
   lcd.setCursor(0, 1);
   lcd.print(textTime);
 
+  
   if (val_LLS) {
     waterPumpState = false;
   }
-
+  
   currenTime = millis();
   if (currenTime - lasTime > 5000) {
     lasTime = currenTime;

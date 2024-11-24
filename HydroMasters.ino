@@ -9,7 +9,7 @@ long currenTime, lasTime;
 Relay airPump(32);
 bool airPumpState = false;
 
-Relay waterPump(35);
+Relay waterPump(14);
 bool waterPumpState = false;
 
 /*------------------------------ SENSORS ------------------------------*/
@@ -28,17 +28,25 @@ LiquidCrystal_I2C lcd (0x27, 16, 2);
 // RTC
 DS1307_RTC rtc;
 
+// SD 
+MicroSD MSD;
+
 /*------------------------------ FUNCTIONS ------------------------------*/
-void setupWifi() {
-  delay(1000);
+void reconnectWifi() {
+  unsigned long startWifi = millis();
+
   Serial.print("Connecting to: ");
   Serial.println(SSID);
 
   WiFi.begin(SSID, PSWD);
 
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
+    if (millis() - startWifi > WIFI_TIME_OUT) {
+      Serial.println("\nWiFi connection timeout. Proceeding without connection...");
+      return;
+    }
+    delay(500);
+    Serial.print(".");  
   }
   
   Serial.print("\nConnected to: ");
@@ -100,7 +108,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void setup() {
   Serial.begin(115200);
 
-  setupWifi();
+  reconnectWifi();
   client.setServer("test.mosquitto.org", 1883);
   client.setCallback(callback);
 
@@ -113,27 +121,12 @@ void setup() {
   pinMode(LLS, INPUT);
   rtc.init();
   lcd.init();
+  MSD.init();
   lcd.backlight();
 }
 
 void loop() {
-  delay(10);
-  reconnect();
-
-  if (airPumpState) {
-    airPump.on();
-  }
-  else {
-    airPump.off();
-  }
-
-  if (waterPumpState) {
-    waterPump.on();
-  }
-  else {
-   waterPump.off();
-  }
-  
+  /*------------------------------ SENSORS READING ------------------------------*/
   waterTemp.requestTemperatures();
   temp = waterTemp.getTempCByIndex(0);
   /*
@@ -142,9 +135,11 @@ void loop() {
   */
 
   int val_LLS = digitalRead(LLS);
-  Serial.println(val_LLS);
+  //Serial.println(val_LLS);
 
+  // show date and time in the LCD
   lcd.clear();
+    
   String textDate = rtc.formated_date();
   String textTime = rtc.formated_time();
 
@@ -154,31 +149,83 @@ void loop() {
   lcd.setCursor(0, 1);
   lcd.print(textTime);
 
-  
-  if (val_LLS) {
-    waterPumpState = false;
-  }
-  
-  currenTime = millis();
-  if (currenTime - lasTime > 5000) {
-    lasTime = currenTime;
+  /*------------------------------ CHANGE PUMP STATES ------------------------------*/
+    if (airPumpState)
+    airPump.on();
+    else
+      airPump.off();
 
-    StaticJsonDocument<200> doc;
-    doc["temp"] = temp;
-    doc["airPump"] = airPumpState;
-    doc["waterPump"] = waterPumpState;
-    doc["date"] = textDate;
-    doc["time"] = textTime;
+    if (waterPumpState)
+      waterPump.on();
+    else
+    waterPump.off();
 
-    char buffer[200];
-    serializeJson(doc, buffer);
+    if (val_LLS)
+      waterPumpState = false;
 
+  // if the esp has internet
+  if (WiFi.status() == WL_CONNECTED) {
+    delay(10);
+    reconnect();
 
-    if (client.publish(TX_TOPIC, buffer)) {
-      Serial.println("Publishing message...");
-      Serial.println(buffer);
+    /*------------------------------ PUBLISH TO TX TOPIC ------------------------------*/
+    currenTime = millis();
+    if (currenTime - lasTime > MSG_COOLDOWN) {
+      lasTime = currenTime;
+
+      StaticJsonDocument<200> doc;
+      doc["temp"] = temp;
+      doc["airPump"] = airPumpState;
+      doc["waterPump"] = waterPumpState;
+      doc["date"] = textDate;
+      doc["time"] = textTime;
+
+      char buffer[200];
+      serializeJson(doc, buffer);
+
+      if (client.publish(TX_TOPIC, buffer)) {
+        Serial.println("Publishing message...");
+        Serial.println(buffer);
+      }
+      else 
+        Serial.println("Failed to publish message.");
     }
-    else 
-      Serial.println("Failed to publish message.");
+  }
+
+  // if the esp doesn't has internet
+  else {
+    // to not waste energy
+    waterPumpState = false;
+    airPumpState = false;
+    airPump.off();
+    waterPump.off();
+    Serial.println("WiFi disconnected");
+
+    /*------------------------------ SAVING DATA IN SD CARD ------------------------------*/
+    currenTime = millis();
+    if (currenTime - lasTime > MSG_COOLDOWN) {
+      lasTime = currenTime;
+
+      StaticJsonDocument<200> doc;
+      doc["temp"] = temp;
+      doc["airPump"] = airPumpState;
+      doc["waterPump"] = waterPumpState;
+      doc["date"] = textDate;
+      doc["time"] = textTime;
+
+      char buffer[200];
+      serializeJson(doc, buffer);
+
+      Serial.println("Saving data in SD card");
+      String fullTime = rtc.formated_fullDate('_', '_', '_');
+      //Serial.println(fullTime);
+      String fileName = "/" + fullTime + ".json";
+
+      Serial.println(buffer);
+      MSD.saveJson(fileName, doc);
+    }
+    reconnectWifi();
+
+    delay(1000);
   }
 }

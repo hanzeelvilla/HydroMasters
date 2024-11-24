@@ -9,7 +9,10 @@
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <LiquidCrystal_I2C.h>
 #include "Relay.h"
+#include "DS1307_RTC.h"
+#include "MicroSD.h"
 
 #define SSID "SSID"
 #define PSWD "PSWD"
@@ -18,7 +21,8 @@
 #define PORT 1883
 #define RX_TOPIC "/RX_TOPIC"
 #define TX_TOPIC "/TX_TOPIC"
-
 #define MQTT_CLIENT "Client"
+
+#define WIFI_TIME_OUT 10000
 
 #endif

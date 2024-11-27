@@ -31,6 +31,9 @@ DS1307_RTC rtc;
 // SD 
 MicroSD MSD;
 
+// TDS
+TDS tds(34); 
+
 /*------------------------------ FUNCTIONS ------------------------------*/
 void reconnectWifi() {
   unsigned long startWifi = millis();
@@ -122,6 +125,7 @@ void setup() {
   rtc.init();
   lcd.init();
   MSD.init();
+  tds.init();
   lcd.backlight();
 }
 
@@ -136,6 +140,13 @@ void loop() {
 
   int val_LLS = digitalRead(LLS);
   //Serial.println(val_LLS);
+
+  TDSData tds_data = tds.read(25);
+  /*
+  Serial.print("TDS Value: ");
+  Serial.print(tds_data.ppm);
+  Serial.println("ppm");
+  */
 
   // show date and time in the LCD
   lcd.clear();
@@ -175,6 +186,7 @@ void loop() {
 
       StaticJsonDocument<200> doc;
       doc["temp"] = temp;
+      doc["tds"] = tds_data.ppm;
       doc["airPump"] = airPumpState;
       doc["waterPump"] = waterPumpState;
       doc["date"] = textDate;
@@ -224,8 +236,8 @@ void loop() {
       Serial.println(buffer);
       MSD.saveJson(fileName, doc);
     }
+    
     reconnectWifi();
-
-    delay(1000);
+    delay(200);
   }
 }

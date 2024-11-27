@@ -13,6 +13,7 @@
 #include "Relay.h"
 #include "DS1307_RTC.h"
 #include "MicroSD.h"
+#include "TDS.h"
 
 #define SSID "SSID"
 #define PSWD "PSWD"
@@ -24,5 +25,6 @@
 #define MQTT_CLIENT "Client"
 
 #define WIFI_TIME_OUT 10000
+#define MSG_COOLDOWN 5000
 
 #endif

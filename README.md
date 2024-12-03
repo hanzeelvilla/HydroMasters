@@ -2,6 +2,8 @@
 
 This project implements an IoT system that monitors water temperature, total dissolved solids (TDS), and a liquid level sensor (LLS) while controlling water and air pumps. It uses an ESP32 microcontroller with various peripherals to gather data, display information, and respond to MQTT messages.
 
+![Logic](logic.jpg)
+
 ## Features
 * **WiFi Connectivity**: Connects to WiFi and communicates with an MQTT broker.
 * **Sensors**: Reads water temperature, TDS levels, and liquid level sensor data.
